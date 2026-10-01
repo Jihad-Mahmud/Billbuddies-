@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BillBuddies</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#0A0E17; --ink:#EAF0F7; --paper:#121D2E;
+  --green:#EAF0F7; --green-2:#7FC5D6; --gold:#7690A3;
+  --line:#22334A; --owe:#E2795A; --get:#7FC5D6; --muted:#6C8A9C;
+  --radius:14px;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;}
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+body{margin:0;background:var(--bg);background-image:linear-gradient(135deg, #0A0E17 0%, #16293B 28%, #22334A 52%, #0A0E17 78%, #0A0E17 100%);color:var(--ink);font-family:'Inter',system-ui,sans-serif;min-height:100%;position:relative;overflow-x:hidden;}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(90px);z-index:0;pointer-events:none;}
+body::before{width:440px;height:440px;top:-160px;right:-140px;background:radial-gradient(circle,var(--green) 0%,transparent 70%);opacity:.35;}
+body::after{width:400px;height:400px;bottom:-180px;left:-160px;background:radial-gradient(circle,var(--gold) 0%,transparent 70%);opacity:.16;}
+.wrap{max-width:480px;margin:0 auto;padding:24px 18px 60px;position:relative;z-index:1;}
+h1,h2,h3{font-family:'Sora',system-ui,sans-serif;margin:0;}
+.brand{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:-24px -18px 28px;padding:22px 18px 18px;border-bottom:1px solid var(--line);}
+.brand-left{display:flex;flex-direction:column;gap:2px;}
+.brand .mark{font-size:24px;font-weight:800;letter-spacing:-0.02em;color:var(--ink);}
+.brand .sub{font-size:12px;color:var(--muted);}
+.brand-badge{font-size:11px;font-weight:700;color:var(--bg);background:var(--green);padding:6px 12px;border-radius:20px;white-space:nowrap;}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:14px;}
+.home-grid{display:grid;grid-template-columns:1fr;gap:14px;margin-top:6px;}
+.home-tagline{font-family:'Sora',system-ui,sans-serif;font-size:16px;font-weight:700;font-style:italic;line-height:1.45;color:var(--ink);margin:22px 0 0;max-width:44ch;}
+.home-tagline .accent{color:var(--green-2);}
+.home-tile{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:34px 20px;text-align:center;cursor:pointer;transition:border-color .12s ease, transform .12s ease;}
+.home-tile:hover{border-color:var(--green-2);border-width:2px;transform:translateY(-2px);}
+.home-tile .ic{font-size:42px;display:block;margin-bottom:12px;}
+.home-tile b{font-family:'Sora',sans-serif;font-size:19px;}
+.home-tile span{display:block;font-size:13.5px;color:var(--muted);margin-top:5px;}
+.topbar{display:flex;align-items:center;gap:10px;margin-bottom:18px;}
+.back{background:none;border:1px solid var(--line);border-radius:10px;padding:7px 12px;color:var(--ink);cursor:pointer;font-size:14px;transition:border-color .12s ease;}
+.back:hover{border-color:var(--green-2);font-weight:600;}
+.topbar h2{font-size:19px;flex:1;}
+label{display:block;font-size:12.5px;color:var(--muted);margin:12px 0 6px;font-weight:600;}
+label:first-child{margin-top:0;}
+.hint{font-weight:400;color:var(--muted);}
+input[type=text],input[type=number],input[type=date]{
+  width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;
+  background:var(--bg);color:var(--ink);font-size:15px;font-family:inherit;transition:border-color .12s ease;
+}
+input:focus,input:hover{outline:none;border-color:var(--green-2);}
+input[type=date]::-webkit-calendar-picker-indicator{transform:scale(1.6);filter:invert(1) brightness(1.4);cursor:pointer;margin-left:6px;}
+.row{display:flex;gap:8px;}
+.row input{flex:1;}
+.btn{background:var(--green);color:var(--bg);border:1px solid var(--green);border-radius:10px;padding:11px 16px;font-size:14.5px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:border-color .12s ease, background .12s ease;}
+.btn:hover{background:var(--green-2);border-color:var(--gold);}
+.btn.ghost{background:none;border:1px solid var(--line);color:var(--ink);}
+.btn.ghost:hover{border-color:var(--green-2);background:none;font-weight:600;}
+.btn.block{width:100%;margin-top:14px;}
+.btn.sm{padding:6px 10px;font-size:13px;}
+.chip-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+.chip{background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:6px 12px;font-size:13.5px;display:flex;align-items:center;gap:7px;transition:border-color .12s ease;}
+.chip:hover{border-color:var(--green-2);font-weight:600;}
+.chip button{background:none;border:none;color:var(--owe);cursor:pointer;font-size:14px;padding:0;line-height:1;}
+.check-list{display:flex;flex-direction:column;gap:2px;margin-top:6px;}
+.check-item{display:flex;align-items:center;gap:10px;padding:9px 6px;border:1px solid transparent;border-bottom:1px solid var(--line);font-size:14.5px;border-radius:8px;transition:border-color .12s ease;cursor:pointer;}
+.check-item:hover{border-color:var(--green-2);font-weight:600;}
+.check-item:last-child{border-bottom:none;}
+.check-item input{width:17px;height:17px;accent-color:var(--green-2);}
+.everyone-item{color:var(--gold);font-weight:700;}
+.everyone-item input{accent-color:var(--gold);}
+.everyone-item:hover{border-color:var(--gold);}
+.payer-amounts{margin-top:8px;display:flex;flex-direction:column;gap:6px;}
+.payer-amt-row{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--line);border-radius:8px;transition:border-color .12s ease;background:var(--bg);}
+.payer-amt-row:hover,.payer-amt-row:focus-within{border-color:var(--green-2);font-weight:600;}
+.payer-amt-row span{flex:1;font-size:14px;}
+.payer-amt-row input{width:110px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);font-size:14px;font-family:inherit;}
+.exp-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);}
+.exp-item:last-child{border-bottom:none;}
+.exp-item .meta{font-size:12.5px;color:var(--muted);margin-top:2px;}
+.exp-amt{font-weight:700;font-family:'Sora',sans-serif;}
+.result-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px dashed var(--line);font-size:15px;}
+.result-row:last-child{border-bottom:none;}
+.result-row b{font-family:'Sora',sans-serif;}
+.total-line{display:flex;justify-content:space-between;font-family:'Sora',sans-serif;font-size:17px;font-weight:700;margin-top:4px;padding-top:12px;border-top:1px solid var(--line);}
+.day-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;align-items:stretch;}
+.day-tab{flex:none;padding:8px 14px;border-radius:20px;border:1px solid var(--line);background:var(--paper);font-size:13.5px;cursor:pointer;white-space:nowrap;transition:border-color .12s ease;}
+.day-tab:hover{border-color:var(--green-2);font-weight:600;}
+.day-tab.active{background:var(--green);color:var(--bg);border-color:var(--green);}
+.day-tab.add-day{border-radius:50%;width:40px;height:40px;padding:0;display:flex;align-items:center;justify-content:center;font-size:17px;color:var(--gold);border-color:var(--gold);font-weight:700;}
+.day-tab.add-day:hover{background:var(--gold);color:#fff;}
+.empty{color:var(--muted);font-size:13.5px;text-align:center;padding:18px 6px;}
+.section-label{font-size:11px;letter-spacing:.03em;color:var(--muted);margin:22px 0 8px;font-weight:600;}
+.settle-item{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14.5px;}
+.settle-item:last-child{border-bottom:none;}
+.arrow{color:var(--muted);}
+.pos{color:var(--get);font-weight:700;}
+.neg{color:var(--owe);font-weight:700;}
+.hide{display:none !important;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="brand">
+    <div class="brand-left">
+      <span class="mark">🧾 BillBuddies</span>
+      <span class="sub">split it, don't sweat it</span>
+    </div>
+    <span class="brand-badge">Made for friends</span>
+  </div>
+
+  <div id="view-home">
+    <div class="home-grid">
+      <div class="home-tile" onclick="go('single')">
+        <span class="ic">🍽️</span><b>Single Bill</b><span>One meal, quick split</span>
+      </div>
+      <div class="home-tile" onclick="goTripEntry()">
+        <span class="ic">🧳</span><b>Trip</b><span>Day by day, settle at the end</span>
+      </div>
+    </div>
+    <p class="home-tagline">No spreadsheets, no arguments. <span class="accent">Just add what you spent, who was there</span> — BillBuddies does the rest.</p>
+  </div>
+
+  <div id="view-trip-choice" class="hide">
+    <div class="topbar"><button class="back" onclick="go('home')">← Back</button><h2>Trip</h2></div>
+    <div class="home-grid">
+      <div class="home-tile" onclick="go('trip-setup')">
+        <span class="ic">🆕</span><b>New Trip</b><span>Start a fresh trip</span>
+      </div>
+      <div class="home-tile" onclick="continueLastTrip()">
+        <span class="ic">▶️</span><b id="continue-tile-label">Continue</b><span>Pick up where you left off</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="view-single" class="hide">
+    <div class="topbar"><button class="back" onclick="go('home')">← Back</button><h2>Single Bill</h2></div>
+
+    <div class="card">
+      <label>People</label>
+      <div class="row"><input type="text" id="s-person" placeholder="Add a name"><button class="btn ghost" onclick="addPerson('single')">Add</button></div>
+      <div class="chip-list" id="s-people-chips"></div>
+    </div>
+
+    <div class="card">
+      <label>Amount (৳)</label>
+      <input type="number" id="s-amount" placeholder="0">
+      <label>Description <span class="hint">(optional)</span></label>
+      <input type="text" id="s-desc" placeholder="e.g. Chicken Fry">
+      <label>Who's in this expense?</label>
+      <div class="check-list" id="s-participants"></div>
+      <button class="btn block" onclick="addExpense('single')">+ Add Expense</button>
+    </div>
+
+    <div class="card" id="s-expenses-card" style="display:none">
+      <label style="margin-top:0">Expenses</label>
+      <div id="s-expenses"></div>
+    </div>
+
+    <div class="card" id="s-result-card" style="display:none">
+      <label style="margin-top:0">Each person owes</label>
+      <div id="s-result"></div>
+      <div class="total-line"><span>Total</span><span id="s-total">৳0</span></div>
+    </div>
+  </div>
+
+  <div id="view-trip-setup" class="hide">
+    <div class="topbar"><button class="back" onclick="go('home')">← Back</button><h2>New Trip</h2></div>
+    <div class="card">
+      <label>Trip name</label>
+      <input type="text" id="t-name" placeholder="e.g. Cox's Bazar Tour">
+      <label>Members</label>
+      <div class="row"><input type="text" id="t-person" placeholder="Add a name"><button class="btn ghost" onclick="addPerson('trip')">Add</button></div>
+      <div class="chip-list" id="t-people-chips"></div>
+      <label>Start date <span class="hint">(return date not needed — add days as you go)</span></label>
+      <input type="date" id="t-start">
+      <button class="btn block" onclick="createTrip()">Create Trip</button>
+    </div>
+  </div>
+
+  <div id="view-trip" class="hide">
+    <div class="topbar"><button class="back" onclick="go('home')">← Back</button><h2 id="t-title">Trip</h2>
+      <button class="btn ghost sm" onclick="copyShareLink()">🔗 Share</button></div>
+    <div id="cloud-status" class="hint" style="margin:-10px 0 14px"></div>
+
+    <div class="day-tabs" id="day-tabs"></div>
+
+    <div class="card">
+      <label style="margin-top:0">Amount (৳)</label>
+      <input type="number" id="d-amount" placeholder="0">
+      <label>Description <span class="hint">(optional)</span></label>
+      <input type="text" id="d-desc" placeholder="e.g. Chicken Fry">
+      <label>Paid by <span class="hint">(tick more than one if it was split by cash)</span></label>
+      <div class="check-list" id="d-payer-list"></div>
+      <div class="payer-amounts hide" id="payer-amounts"></div>
+      <label>Who participated?</label>
+      <div class="check-list" id="d-participants"></div>
+      <button class="btn block" onclick="addDayExpense()">+ Add Expense</button>
+    </div>
+
+    <div class="card" id="d-expenses-card" style="display:none">
+      <label style="margin-top:0">This day's expenses</label>
+      <div id="d-expenses"></div>
+      <div class="total-line"><span>Day total</span><span id="d-total">৳0</span></div>
+    </div>
+
+    <div class="section-label">FINAL SETTLEMENT</div>
+    <div class="card">
+      <div id="trip-balances"></div>
+      <div class="total-line"><span>Trip total</span><span id="trip-total">৳0</span></div>
+      <button class="btn block" onclick="shareSettlement()">📤 Share Settlement</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ==== STEP 2: paste your own Supabase Project URL + anon key below ====
+const SUPABASE_URL = "https://fmshbpfdexlydgpdsavl.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtc2hicGZkZXhseWRncGRzYXZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyNDUxNjgsImV4cCI6MjEwNTgyMTE2OH0.I3IrcYYtjibKw0tt2oKkihv1GxBWFPCZ7gn4nX4DM1Q";
+const db = SUPABASE_URL.startsWith('http') ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+let single = { people: [], expenses: [] };
+let trip = null;
+window._tPeople = [];
+let tripBalance = [];
+let tripTotal = 0;
+let billId = new URLSearchParams(location.search).get('id');
+let saveTimer = null;
+
+// debounced cloud save — waits 600ms after the last change before writing
+function saveState(){
+  if(!db) return;
+  const hasData = trip ? true : (single.people.length>0 || single.expenses.length>0);
+  if(!hasData) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(doSave, 600);
+}
+async function doSave(){
+  const type = trip ? 'trip' : 'single';
+  const data = trip ? trip : single;
+  const status = document.getElementById('cloud-status');
+  if(status) status.textContent = 'Saving…';
+  if(!billId){
+    const { data: newId, error } = await db.rpc('upsert_bill', { bill_id: null, bill_type: type, bill_data: data });
+    if(error){ console.error(error); if(status) status.textContent = 'Save failed — check your Supabase keys.'; return; }
+    billId = newId;
+    history.replaceState(null, '', '?id='+billId);
+  } else {
+    const { error } = await db.rpc('upsert_bill', { bill_id: billId, bill_type: type, bill_data: data });
+    if(error){ console.error(error); if(status) status.textContent = 'Save failed.'; return; }
+  }
+  if(status) status.textContent = 'Saved ✓ — this link keeps your trip updated for everyone.';
+  saveLastTrip();
+}
+async function loadState(){
+  if(!db || !billId) return;
+  const { data: rows, error } = await db.rpc('get_bill', { bill_id: billId });
+  const row = rows && rows[0];
+  if(error || !row) return;
+  if(row.type === 'trip'){
+    trip = row.data;
+    trip.days.forEach(d=>d.dateObj = new Date(d.dateObj));
+    go('trip');
+  } else {
+    single = row.data;
+    go('single');
+  }
+}
+function copyShareLink(){
+  if(!billId){ alert('Add at least one expense first — the link is created after the first save.'); return; }
+  navigator.clipboard.writeText(location.href);
+  alert('Link copied! Send it to your friends — everyone who opens it sees the same trip.');
+}
+
+function go(view){
+  ['home','single','trip-setup','trip','trip-choice'].forEach(v=>{
+    document.getElementById('view-'+v).classList.toggle('hide', v!==view);
+  });
+  if(view==='single') renderSingle();
+  if(view==='trip') renderTrip();
+}
+function getLastTrip(){
+  try{ return JSON.parse(localStorage.getItem('billbuddies_lastTrip')); }catch(e){ return null; }
+}
+function saveLastTrip(){
+  if(!trip || !billId) return;
+  try{ localStorage.setItem('billbuddies_lastTrip', JSON.stringify({id: billId, name: trip.name})); }catch(e){}
+}
+function goTripEntry(){
+  const last = getLastTrip();
+  if(!last){ go('trip-setup'); return; }
+  document.getElementById('continue-tile-label').textContent = 'Continue: ' + last.name;
+  go('trip-choice');
+}
+function continueLastTrip(){
+  const last = getLastTrip();
+  if(!last) return;
+  billId = last.id;
+  loadState();
+}
+
+function addPerson(mode){
+  const inputId = mode==='single' ? 's-person' : 't-person';
+  const input = document.getElementById(inputId);
+  const name = input.value.trim();
+  if(!name) return;
+  const target = mode==='single' ? single.people : window._tPeople;
+  target.push(name);
+  input.value = '';
+  if(mode==='single') renderSingle(); else renderTripSetupChips();
+}
+function removePerson(mode, idx){
+  if(mode==='single'){ single.people.splice(idx,1); renderSingle(); }
+  else { window._tPeople.splice(idx,1); renderTripSetupChips(); }
+}
+function renderChips(elId, people, mode){
+  document.getElementById(elId).innerHTML = people.map((p,i)=>`<span class="chip">${p}<button onclick="removePerson('${mode}',${i})">✕</button></span>`).join('');
+}
+function money(n){ return '৳' + (Math.round(n*100)/100).toLocaleString('en-BD'); }
+function formatDate(d){ return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'}); }
+
+// ---- everyone-aware participant list ----
+function renderParticipantList(containerId, people){
+  const el = document.getElementById(containerId);
+  if(people.length===0){ el.innerHTML = '<div class="empty">Add people above first</div>'; return; }
+  el.innerHTML = `<label class="check-item everyone-item">
+      <input type="checkbox" id="${containerId}-everyone" onchange="toggleEveryone('${containerId}')"><span>Everyone</span>
+    </label>` + people.map((p,i)=>`
+      <label class="check-item"><input type="checkbox" class="person-check" value="${i}" checked onchange="syncEveryone('${containerId}')"> ${p}</label>
+    `).join('');
+  syncEveryone(containerId);
+}
+function toggleEveryone(containerId){
+  const on = document.getElementById(containerId+'-everyone').checked;
+  document.querySelectorAll('#'+containerId+' .person-check').forEach(cb=>cb.checked=on);
+}
+function syncEveryone(containerId){
+  const boxes = document.querySelectorAll('#'+containerId+' .person-check');
+  const all = boxes.length>0 && Array.from(boxes).every(cb=>cb.checked);
+  document.getElementById(containerId+'-everyone').checked = all;
+}
+function getChecked(containerId){
+  return Array.from(document.querySelectorAll('#'+containerId+' .person-check:checked')).map(b=>parseInt(b.value));
+}
+
+// ---- SINGLE BILL ----
+function renderSingle(){
+  renderChips('s-people-chips', single.people, 'single');
+  renderParticipantList('s-participants', single.people);
+
+  const ec = document.getElementById('s-expenses');
+  const card = document.getElementById('s-expenses-card');
+  card.style.display = single.expenses.length ? 'block' : 'none';
+  ec.innerHTML = single.expenses.map((e,i)=>`
+    <div class="exp-item">
+      <div><div>${e.desc || 'Expense'}</div><div class="meta">${e.participants.map(p=>single.people[p]).join(', ')}</div></div>
+      <div style="text-align:right"><div class="exp-amt">${money(e.amount)}</div>
+      <button class="btn ghost sm" onclick="removeExpense(${i})" style="margin-top:4px">remove</button></div>
+    </div>`).join('');
+
+  computeSingle();
+  saveState();
+}
+function addExpense(){
+  const amtEl = document.getElementById('s-amount');
+  const descEl = document.getElementById('s-desc');
+  const amount = parseFloat(amtEl.value);
+  if(!amount || amount<=0){ alert('Enter a valid amount'); return; }
+  const participants = getChecked('s-participants');
+  if(participants.length===0){ alert('Select at least one person'); return; }
+  single.expenses.push({amount, desc: descEl.value.trim(), participants});
+  amtEl.value=''; descEl.value='';
+  renderSingle();
+}
+function removeExpense(i){ single.expenses.splice(i,1); renderSingle(); }
+function computeSingle(){
+  const owed = single.people.map(()=>0);
+  let total = 0;
+  single.expenses.forEach(e=>{
+    total += e.amount;
+    const share = e.amount / e.participants.length;
+    e.participants.forEach(p=>owed[p]+=share);
+  });
+  const card = document.getElementById('s-result-card');
+  card.style.display = single.expenses.length ? 'block' : 'none';
+  document.getElementById('s-result').innerHTML = single.people.map((p,i)=>`<div class="result-row"><span>${p}</span><b>${money(owed[i])}</b></div>`).join('');
+  document.getElementById('s-total').textContent = money(total);
+}
+
+// ---- TRIP ----
+function renderTripSetupChips(){ renderChips('t-people-chips', window._tPeople, 'trip'); }
+function createTrip(){
+  const name = document.getElementById('t-name').value.trim() || 'My Trip';
+  const people = window._tPeople;
+  const start = document.getElementById('t-start').value;
+  if(people.length<2){ alert('Add at least 2 people'); return; }
+  if(!start){ alert('Pick a start date'); return; }
+  const dateObj = new Date(start);
+  trip = { name, people, currentDay:0,
+    days:[{label:'Day 1', dateObj, dateStr: formatDate(dateObj), expenses:[]}] };
+  document.getElementById('t-name').value=''; document.getElementById('t-start').value='';
+  window._tPeople = [];
+  go('trip');
+}
+function addTripDay(){
+  const days = trip.days;
+  const nd = new Date(days[days.length-1].dateObj);
+  nd.setDate(nd.getDate()+1);
+  days.push({label:'Day '+(days.length+1), dateObj:nd, dateStr: formatDate(nd), expenses:[]});
+  trip.currentDay = days.length-1;
+  renderTrip();
+}
+function switchDay(i){ trip.currentDay = i; renderTrip(); }
+function removeDayExpense(i){ trip.days[trip.currentDay].expenses.splice(i,1); renderTrip(); }
+
+function renderPayerList(){
+  document.getElementById('d-payer-list').innerHTML = trip.people.map((p,i)=>`
+    <label class="check-item payer-item">
+      <input type="checkbox" class="payer-check" value="${i}" onchange="onPayerChange()">
+      <span>${p}</span>
+    </label>`).join('');
+  onPayerChange();
+}
+function onPayerChange(){
+  const checked = Array.from(document.querySelectorAll('#d-payer-list .payer-check:checked'));
+  const box = document.getElementById('payer-amounts');
+  if(checked.length>1){
+    box.classList.remove('hide');
+    box.innerHTML = checked.map(cb=>{
+      const idx = cb.value;
+      return `<label class="payer-amt-row"><span>${trip.people[idx]}</span>
+        <input type="number" class="payer-amt" data-idx="${idx}" placeholder="৳ amount"></label>`;
+    }).join('');
+  } else {
+    box.classList.add('hide');
+    box.innerHTML = '';
+  }
+}
+
+function renderTrip(){
+  if(!trip) return;
+  document.getElementById('t-title').textContent = trip.name;
+  document.getElementById('day-tabs').innerHTML = trip.days.map((d,i)=>
+    `<button class="day-tab ${i===trip.currentDay?'active':''}" onclick="switchDay(${i})">${d.label}<br><small>${d.dateStr}</small></button>`).join('')
+    + `<button class="day-tab add-day" onclick="addTripDay()" title="Add next day">→</button>`;
+
+  renderPayerList();
+  renderParticipantList('d-participants', trip.people);
+
+  const day = trip.days[trip.currentDay];
+  const ec = document.getElementById('d-expenses');
+  const card = document.getElementById('d-expenses-card');
+  card.style.display = day.expenses.length ? 'block' : 'none';
+  let dTotal = 0;
+  ec.innerHTML = day.expenses.map((e,i)=>{
+    dTotal += e.amount;
+    const payerText = e.payments.length===1
+      ? trip.people[e.payments[0].person]
+      : e.payments.map(pm=>trip.people[pm.person]+' '+money(pm.amount)).join(', ');
+    return `<div class="exp-item">
+      <div><div>${e.desc || 'Expense'} <span class="meta">· paid by ${payerText}</span></div>
+      <div class="meta">${e.participants.map(p=>trip.people[p]).join(', ')}</div></div>
+      <div style="text-align:right"><div class="exp-amt">${money(e.amount)}</div>
+      <button class="btn ghost sm" onclick="removeDayExpense(${i})" style="margin-top:4px">remove</button></div>
+    </div>`;
+  }).join('');
+  document.getElementById('d-total').textContent = money(dTotal);
+
+  computeTrip();
+  saveState();
+}
+
+function addDayExpense(){
+  const amtEl = document.getElementById('d-amount');
+  const descEl = document.getElementById('d-desc');
+  const amount = parseFloat(amtEl.value);
+  if(!amount || amount<=0){ alert('Enter a valid amount'); return; }
+  const participants = getChecked('d-participants');
+  if(participants.length===0){ alert('Select at least one person'); return; }
+
+  const payerChecks = Array.from(document.querySelectorAll('#d-payer-list .payer-check:checked'));
+  if(payerChecks.length===0){ alert('Select who paid'); return; }
+
+  let payments;
+  if(payerChecks.length===1){
+    payments = [{ person: parseInt(payerChecks[0].value), amount: amount }];
+  } else {
+    let sum = 0;
+    payments = payerChecks.map(cb=>{
+      const idx = cb.value;
+      const amtInput = document.querySelector(`#payer-amounts .payer-amt[data-idx="${idx}"]`);
+      const amt = parseFloat(amtInput.value) || 0;
+      sum += amt;
+      return { person: parseInt(idx), amount: amt };
+    });
+    if(Math.abs(sum-amount) > 0.5){
+      alert("The amounts you entered (৳"+sum+") don't add up to the total (৳"+amount+"). Please check.");
+      return;
+    }
+  }
+
+  trip.days[trip.currentDay].expenses.push({ amount, desc: descEl.value.trim(), participants, payments });
+  amtEl.value=''; descEl.value='';
+  renderTrip();
+}
+
+function computeTrip(){
+  const paid = trip.people.map(()=>0);
+  const owed = trip.people.map(()=>0);
+  let total = 0;
+  trip.days.forEach(day=>{
+    day.expenses.forEach(e=>{
+      total += e.amount;
+      e.payments.forEach(pm=>paid[pm.person]+=pm.amount);
+      const share = e.amount / e.participants.length;
+      e.participants.forEach(p=>owed[p]+=share);
+    });
+  });
+  const balance = trip.people.map((_,i)=>paid[i]-owed[i]);
+  tripBalance = balance;
+  tripTotal = total;
+
+  document.getElementById('trip-balances').innerHTML = trip.people.map((p,i)=>{
+    const b = balance[i];
+    const cls = b>0.01?'pos':b<-0.01?'neg':'';
+    const txt = b>0.01? '+ '+money(b) : b<-0.01? '− '+money(-b) : '৳0';
+    return `<div class="result-row"><span>${p}</span><b class="${cls}">${txt}</b></div>`;
+  }).join('');
+  document.getElementById('trip-total').textContent = money(total);
+}
+
+function shareSettlement(){
+  if(!trip) return;
+  let text = `🧾 ${trip.name} — Final Settlement\n\n`;
+  trip.people.forEach((p,i)=>{
+    const b = tripBalance[i];
+    const line = b>0.01 ? '+'+money(b) : b<-0.01 ? '−'+money(-b) : '৳0';
+    text += `${p}: ${line}\n`;
+  });
+  text += `\nTotal: ${money(tripTotal)}`;
+
+  if(navigator.share){
+    navigator.share({ title: trip.name+' — Final Settlement', text }).catch(()=>{});
+  } else {
+    navigator.clipboard.writeText(text);
+    alert('Copied! Now paste it into WhatsApp or Messenger.');
+  }
+}
+
+if(billId){ loadState(); } else { renderSingle(); }
+</script>
+</body>
+</html>
